@@ -1,0 +1,73 @@
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {
+    getDatabase,
+    ref,
+    onValue,
+    runTransaction
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+const firebaseConfig = {
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_PROJECT.firebaseapp.com",
+    databaseURL: "https://YOUR_PROJECT-default-rtdb.firebaseio.com",
+    projectId: "YOUR_PROJECT",
+    storageBucket: "YOUR_PROJECT.appspot.com",
+    messagingSenderId: "123456789",
+    appId: "YOUR_APP_ID"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+const votesRef = ref(db, "votes");
+
+let userVote = localStorage.getItem("userVote");
+
+function updateUI(messi, ronaldo) {
+    document.getElementById("messiVotes").innerText = messi;
+    document.getElementById("ronaldoVotes").innerText = ronaldo;
+
+    let total = messi + ronaldo;
+    document.getElementById("total").innerText = total;
+
+    let mPercent = total ? (messi / total) * 100 : 50;
+    let rPercent = total ? (ronaldo / total) * 100 : 50;
+
+    document.getElementById("mbar").style.width = mPercent + "%";
+    document.getElementById("rbar").style.width = rPercent + "%";
+
+    if (userVote) {
+        document.getElementById("messiBtn").disabled = true;
+        document.getElementById("ronaldoBtn").disabled = true;
+
+        document.getElementById("status").innerText =
+            "You already voted for: " + userVote.toUpperCase();
+    }
+}
+
+onValue(votesRef, (snapshot) => {
+    const data = snapshot.val() || {
+        messi: 0,
+        ronaldo: 0
+    };
+
+    updateUI(data.messi, data.ronaldo);
+});
+
+window.vote = function(choice) {
+    if (userVote) return;
+
+    runTransaction(votesRef, (data) => {
+        if (!data) {
+            data = { messi: 0, ronaldo: 0 };
+        }
+
+        data[choice]++;
+        return data;
+    });
+
+    localStorage.setItem("userVote", choice);
+    userVote = choice;
+}
+</script>
